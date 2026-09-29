@@ -1,7 +1,8 @@
 // player.scss — 播放条与 MD3 桌面端直轨滑块规范重构
 // 1. 严格锁定 footer 为原生 position: fixed 底栏悬浮定位，绝对严禁改为 relative (否则踩中 Flex 挤压分裂主页)
 // 兼容 RNP: 在 RNP 全屏展开时 (:not(.rnp-lyric-page-open):not(.mq-playing)) 排除放行，以便 RNP 顺畅推离原生底栏
-body.material-you-theme:not(.rnp-lyric-page-open):not(.mq-playing) footer {
+// 兼容 APB: 未启用 APB 时 (:not(.apb-active)) 渲染主题实体背景与阴影；启用 APB 时完全放权为透明，交由 APB 渲染毛玻璃
+body.material-you-theme:not(.rnp-lyric-page-open):not(.mq-playing):not(.apb-active) footer {
 	position: fixed !important;
 	bottom: 0 !important;
 	left: 0 !important;
@@ -15,8 +16,22 @@ body.material-you-theme:not(.rnp-lyric-page-open):not(.mq-playing) footer {
 	padding: 0 !important;
 }
 
-// 2. MD3 桌面端直轨滑块规范实装
-body.material-you-theme {
+body.material-you-theme:not(.rnp-lyric-page-open):not(.mq-playing).apb-active footer {
+	position: fixed !important;
+	bottom: 0 !important;
+	left: 0 !important;
+	right: 0 !important;
+	width: 100% !important;
+	height: auto !important;
+	z-index: 998 !important;
+	background: transparent !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+}
+
+// 2. MD3 桌面端直轨滑块规范实装 (未启用 APB 时完整执行；启用 APB 时全权让渡，不执行任何进度条相关修改)
+body.material-you-theme:not(.apb-active) {
 	// 进度条挂载容器：紧贴在 footer 最顶沿
 	[class*="SpaceContainer_"] {
 		position: absolute !important;

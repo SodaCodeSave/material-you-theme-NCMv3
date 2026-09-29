@@ -31,7 +31,7 @@ try {
 				enumerable: false,
 				get() {
 						return window.loadedPlugins['material-u-theme-ncmv3'] || {
-							manifest: { name: 'MaterialYouTheme', version: '1.0.3' }
+								manifest: { name: 'MaterialYouTheme', version: '1.0.4' }
 						};
 				}
 			});
@@ -275,6 +275,46 @@ const isRNPActive = () => {
 		|| (typeof loadedPlugins !== 'undefined' && (loadedPlugins.RefinedNowPlayingNext || loadedPlugins['RefinedNowPlayingNext']))
 		|| document.getElementById('rnp-view')
 	);
+};
+
+// 判断 APB (AdvancedPlayBar) 是否存在或处于激活态
+const isAPBActive = () => {
+	if (typeof window !== 'undefined' && window.__advancedPlayBar?.state) {
+		return Boolean(window.__advancedPlayBar.state.barEnabled);
+	}
+	return Boolean(
+		document.getElementById('apb-style')
+		|| document.querySelector('.apb-blur-host')
+		|| (typeof loadedPlugins !== 'undefined' && (loadedPlugins['advanced-playbar'] || loadedPlugins['AdvancedPlayBar']))
+	);
+};
+
+// APB 运行时监听与 body.apb-active 类名动态同步
+const setupAPBWatcher = () => {
+	let timer = null;
+	const sync = () => {
+		const active = isAPBActive();
+		if (document.body && document.body.classList.contains('apb-active') !== active) {
+			document.body.classList.toggle('apb-active', active);
+		}
+	};
+	sync();
+
+	// 监听 head 中 apb-style 样式的插入/移除
+	if (document.head) {
+		new MutationObserver(sync).observe(document.head, { childList: true });
+	}
+
+	// 监听 body 中类名变动 (捕获 .apb-blur-host 宿主类注入)
+	if (document.body) {
+		new MutationObserver(() => {
+			clearTimeout(timer);
+			timer = setTimeout(sync, 100);
+		}).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+	}
+
+	// 定时同步兜底 (应对 APB 异步挂载与状态切换)
+	setInterval(sync, 1500);
 };
 
 // Q1 实施: 直写播放页内联样式 (--colorBlack* & --colorWhite*) 并维护守卫
@@ -977,9 +1017,10 @@ const boot = () => {
 	setInterval(updateGreeting, 30000);
 
 	hookChannelMenus(); // 菜单染色(D8):尽早挂,晚于 applyScheme 以取到主色
-	setupCoverWatcher();
-	setupSongplayWatcher(); // Q1: 播放页挂载/更新守卫
-	setupHeaderIconsWatcher(); // 顶栏图标 Material Symbols 重绘
+		setupCoverWatcher();
+		setupSongplayWatcher(); // Q1: 播放页挂载/更新守卫
+		setupAPBWatcher(); // 兼容 APB: 动态状态监听与 body.apb-active 标记同步
+		setupHeaderIconsWatcher(); // 顶栏图标 Material Symbols 重绘
 	probeAndWatchAppThemeMode();
 	injectSettingsEntry();
 
